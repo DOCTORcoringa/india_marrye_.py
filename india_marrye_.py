@@ -1,39 +1,65 @@
 #!/usr/bin/env python3
 # india_marrye_termux.py
-# Painel "Índia marrye" para Termux — CLI pura
-# Execute: python india_marrye_termux.py
+# CLI para Termux — Painel "Índia marrye"
+# NÃO envia mensagens externas — apenas simula/processa localmente.
 
 import os
 import re
 import time
+import sys
 from datetime import datetime
 
 PANEL_NAME = "Índia marrye"
+VERSION = "1.0"
+
+# Cores ANSI (Termux suporta)
+C_RESET = "\033[0m"
+C_BOLD = "\033[1m"
+C_DIM = "\033[2m"
+C_RED = "\033[31m"
+C_GREEN = "\033[32m"
+C_YELLOW = "\033[33m"
+C_BLUE = "\033[34m"
+C_MAGENTA = "\033[35m"
+C_CYAN = "\033[36m"
+C_WHITE = "\033[37m"
 
 def clear_screen():
     os.system('clear')
 
-def print_banner():
+def banner():
     clear_screen()
-    print("="*60)
-    print(f"{PANEL_NAME:^60}")
-    print("="*60)
+    w = 60
+    top = "=" * w
+    name = f"{PANEL_NAME}".upper()
+    # centralizar nome em destaque (sem arte)
+    print(C_MAGENTA + top + C_RESET)
+    print(C_MAGENTA + C_BOLD + f"{name:^{w}}" + C_RESET)
+    print(C_MAGENTA + top + C_RESET)
+    print(f"{C_DIM}Versão: {VERSION} | Use em ambiente controlado. O proprietário não se responsabiliza por uso de má fé.{C_RESET}")
     print()
 
+# Normaliza números aceitando +, espaços, hífen etc.
 def normalize_number(raw):
     raw = raw.strip()
-    plus = raw.startswith('+')
-    digits = re.sub(r'\D', '', raw)
-    if not digits:
+    if raw == "":
         return None
+    plus = raw.startswith('+')
+    digits = re.sub(r'\D', '', raw)  # remove tudo não dígito
+    if digits == "":
+        return None
+    # se começou com + ou já tem 55 no início, garante +55...
     if plus or digits.startswith('55'):
         if not digits.startswith('55'):
             digits = '55' + digits
         return '+' + digits
+    # caso nacional sem DDI, retorna como dígitos (por ex 64xxxxx)
     return digits
 
 def parse_numbers_field(field_text):
-    parts = [p.strip() for p in field_text.split(',') if p.strip() != ""]
+    # aceita separadores: vírgula (principal), também aceita ; e nova linha
+    parts = re.split(r'[,\n;]+', field_text)
+    parts = [p.strip() for p in parts if p.strip() != ""]
     normalized = []
     for p in parts:
         n = normalize_number(p)
@@ -44,87 +70,115 @@ def parse_numbers_field(field_text):
         return None, "Nenhum número válido fornecido."
     return normalized, None
 
-def get_input_numbers():
-    raw = input("Digite o(s) número(s) separados por vírgula: ")
-    numbers, err = parse_numbers_field(raw)
+def prompt_numbers():
+    txt = input("Digite os números (separados por vírgula): ").strip()
+    nums, err = parse_numbers_field(txt)
     if err:
-        print(f"Erro: {err}")
-        return get_input_numbers()
-    return numbers
+        print(C_RED + "Erro: " + err + C_RESET)
+        return prompt_numbers()
+    return nums
 
-def get_input_action():
+def prompt_action():
     actions = ["Denúncia", "Spam", "Denúncia dupla", "Spam dupla"]
-    print("\nEscolha a ação:")
-    for i, a in enumerate(actions, 1):
-        print(f"{i}. {a}")
-    choice = input("Digite o número da ação: ")
+    print("AÇÕES:")
+    for i,a in enumerate(actions, start=1):
+        print(f"  {C_CYAN}[{i}] {a}{C_RESET}")
+    choice = input("Escolha a ação (número): ").strip()
+    if not choice.isdigit() or not (1 <= int(choice) <= len(actions)):
+        print(C_RED + "Opção inválida." + C_RESET)
+        return prompt_action()
+    return actions[int(choice)-1]
+
+def prompt_qty():
+    s = input("Quantidade por número (ex: 2): ").strip()
+    if not s.isdigit() or int(s) <= 0:
+        print(C_RED + "Quantidade inválida." + C_RESET)
+        return prompt_qty()
+    return int(s)
+
+def prompt_delay():
+    s = input("Delay entre envios em segundos (ex: 1 ou 0.5): ").strip()
     try:
-        idx = int(choice)
-        if 1 <= idx <= len(actions):
-            return actions[idx-1]
-        else:
+        d = float(s)
+        if d < 0:
             raise ValueError
+        return d
     except:
-        print("Escolha inválida!")
-        return get_input_action()
+        print(C_RED + "Delay inválido." + C_RESET)
+        return prompt_delay()
 
-def get_input_qty():
+def show_progress_bar(current, total, width=30):
+    pct = current/total if total>0 else 1
+    filled = int(width * pct)
+    bar = "[" + "#"*filled + "-"*(width-filled) + "]"
+    print(f"{bar} {current}/{total} ({pct*100:.1f}%)", end='\r')
+
+def run_execution(action, numbers, qty, delay):
+    # SOS: limpa antes de exibir execução
+    banner()
+    start = datetime.now()
+    total = len(numbers) * qty
+    print(C_GREEN + f"Iniciando — Ação: {action} | Alvos: {', '.join(numbers)} | Qtd por alvo: {qty} | Delay: {delay}s" + C_RESET)
+    print("Início:", start.strftime('%Y-%m-%d %H:%M:%S'))
+    print()
+    processed = 0
     try:
-        qty = int(input("Quantidade por número: "))
-        if qty <= 0:
-            raise ValueError
-        return qty
-    except:
-        print("Quantidade inválida!")
-        return get_input_qty()
-
-def get_input_delay():
-    try:
-        delay = float(input("Delay entre envios (segundos): "))
-        if delay < 0:
-            raise ValueError
-        return delay
-    except:
-        print("Delay inválido!")
-        return get_input_delay()
-
-def main_loop():
-    while True:
-        print_banner()
-        numbers = get_input_numbers()
-        action = get_input_action()
-        qty = get_input_qty()
-        delay = get_input_delay()
-
-        total_tasks = len(numbers) * qty
-        print("\nIniciando execução...")
-        start_time = datetime.now()
-        task_count = 0
-
         for n in numbers:
             for i in range(1, qty+1):
-                task_count += 1
-                print(f"[{task_count}/{total_tasks}] {action} -> {n} (item {i} de {qty})")
+                processed += 1
+                ts = datetime.now().strftime('%H:%M:%S')
+                # Exibe linha de processamento
+                print(f"{C_YELLOW}{ts} — {action} -> {n} (item {i} de {qty}){C_RESET}")
+                # Atualiza barra de progresso na mesma linha
+                show_progress_bar(processed, total)
+                # Sleep pelo delay pedido
                 time.sleep(delay)
+        # limpar a linha de progresso residual
+        print()
+    except KeyboardInterrupt:
+        print()
+        print(C_RED + "Execução interrompida pelo usuário (CTRL+C)." + C_RESET)
+    end = datetime.now()
+    duration = (end - start).total_seconds()
+    # Resumo
+    print()
+    print(C_MAGENTA + "="*60 + C_RESET)
+    print(C_BOLD + "RESUMO DA EXECUÇÃO" + C_RESET)
+    print(f"Painel: {PANEL_NAME}")
+    print(f"Ação: {action}")
+    print(f"Número(s): {', '.join(numbers)}")
+    print(f"Quantidade por número: {qty}")
+    print(f"Delay entre envios: {delay}s")
+    print(f"Itens processados: {processed}")
+    print(f"Início: {start.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Término: {end.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Duração total (s): {duration:.2f}")
+    print(C_MAGENTA + "="*60 + C_RESET)
+    input("Pressione Enter para voltar ao menu...")
 
-        end_time = datetime.now()
-        duration = (end_time - start_time).total_seconds()
-
-        print("\n=== RESUMO DA EXECUÇÃO ===")
-        print(f"Painel: {PANEL_NAME}")
-        print(f"Ação: {action}")
-        print(f"Número(s): {', '.join(numbers)}")
-        print(f"Quantidade por número: {qty}")
-        print(f"Delay entre envios: {delay}s")
-        print(f"Itens processados: {total_tasks}")
-        print(f"Início: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Término: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Duração total (s): {duration:.2f}")
-        print("============================\n")
-        input("Pressione Enter para voltar ao menu...")
+def main_menu():
+    while True:
+        banner()
+        print("Menu:")
+        print(f"  {C_CYAN}[1]{C_RESET} Executar ação")
+        print(f"  {C_CYAN}[2]{C_RESET} Sair")
+        choice = input("Escolha: ").strip()
+        if choice == '1':
+            numbers = prompt_numbers()
+            action = prompt_action()
+            qty = prompt_qty()
+            delay = prompt_delay()
+            run_execution(action, numbers, qty, delay)
+        elif choice == '2':
+            print(C_GREEN + "Saindo... até mais." + C_RESET)
+            sys.exit(0)
+        else:
+            print(C_RED + "Opção inválida." + C_RESET)
+            time.sleep(1)
 
 if __name__ == "__main__":
     try:
-        main_loop()
+        main_menu()
     except KeyboardInterrupt:
-        print("\nSaindo...")
+        print("\n" + C_RED + "Encerrado pelo usuário." + C_RESET)
+        sys.exit(0)

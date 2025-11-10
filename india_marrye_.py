@@ -1,6 +1,5 @@
-# india_marrye_sim.py
-# Painel "Índia marrye" — NÃO envia mensagens externas.
-# Execute: python india_marrye_sim.py
+# india_marrye_sos.py
+# Painel "Índia marrye" — Execute: python india_marrye_sos.py
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -9,7 +8,7 @@ import re
 
 PANEL_NAME = "Índia marrye"
 
-# Validação/normalização de números
+# Validação e normalização de números
 def normalize_number(raw):
     raw = raw.strip()
     plus = raw.startswith('+')
@@ -47,19 +46,20 @@ class IndiaMarryeApp(tk.Tk):
         self.bind('<Return>', self.on_enter_key)
 
     def _build_ui(self):
-        # Header
-        header = tk.Frame(self, bg='#ffb6d5', height=60)
+        # Cabeçalho tipo banner com nome grande
+        header = tk.Frame(self, bg='#ffb6d5', height=100)
         header.pack(fill='x', padx=12, pady=(12,6))
         header.pack_propagate(False)
-        title = tk.Label(header, text=PANEL_NAME, font=('Helvetica', 20, 'bold'),
-                         bg='#ffb6d5')
-        title.pack(side='left', padx=12)
 
-        # Main content
+        title = tk.Label(header, text=PANEL_NAME, font=('Helvetica', 28, 'bold'),
+                         bg='#ffb6d5', fg='#ffffff')
+        title.pack(expand=True)
+
+        # Conteúdo principal
         content = tk.Frame(self, bg='#ffe6f0')
         content.pack(fill='both', expand=True, padx=12, pady=6)
 
-        # Left column (form)
+        # Coluna esquerda (formulário)
         left = tk.Frame(content, bg='#ffe6f0', width=340)
         left.pack(side='left', fill='y', padx=(0,8))
         left.pack_propagate(False)
@@ -91,18 +91,18 @@ class IndiaMarryeApp(tk.Tk):
         self.entry_delay.place(x=12, y=238, width=296, height=30)
         self.entry_delay.insert(0, "1")
 
-        # Start button
+        # Botão executar
         self.btn_start = tk.Button(form_box, text="Executar", bg='#ff88b8',
                                    command=self.on_start)
         self.btn_start.place(x=12, y=286, width=296, height=40)
 
-        # Progress bar
+        # Barra de progresso
         lbl_progress = tk.Label(form_box, text="Progresso:", bg='#ffdbe8', anchor='w')
         lbl_progress.place(x=12, y=340, width=296, height=16)
         self.progress = ttk.Progressbar(form_box, orient='horizontal', mode='determinate')
         self.progress.place(x=12, y=360, width=296, height=14)
 
-        # Right column (log)
+        # Coluna direita (log)
         right = tk.Frame(content, bg='#ffe6f0', width=340)
         right.pack(side='left', fill='y', padx=(8,0))
         right.pack_propagate(False)
@@ -115,13 +115,19 @@ class IndiaMarryeApp(tk.Tk):
 
         self.txt_log = tk.Text(log_box, wrap='word', state='normal')
         self.txt_log.place(x=12, y=36, width=296, height=420)
-        self.txt_log.insert('end', f"{PANEL_NAME} iniciado em {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        self.txt_log.configure(state='disabled')
+        self.clear_log_header()
 
-        # Footer
+        # Rodapé
         footer = tk.Label(self, text="Use em ambiente controlado. O proprietário não se responsabiliza por uso de má fé.",
                           bg='#ffe6f0', anchor='w')
         footer.pack(fill='x', padx=12, pady=(0,12))
+
+    def clear_log_header(self):
+        self.txt_log.configure(state='normal')
+        self.txt_log.delete('1.0', 'end')
+        self.txt_log.insert('end', f"{PANEL_NAME}\n")
+        self.txt_log.insert('end', "="*50 + "\n\n")
+        self.txt_log.configure(state='disabled')
 
     def log(self, message):
         self.txt_log.configure(state='normal')
@@ -130,6 +136,8 @@ class IndiaMarryeApp(tk.Tk):
         self.txt_log.configure(state='disabled')
 
     def on_start(self):
+        self.clear_log_header()  # SOS: limpa log antes de cada execução
+
         raw_numbers = self.entry_numbers.get()
         numbers, err = parse_numbers_field(raw_numbers)
         if err:
@@ -222,7 +230,8 @@ class IndiaMarryeApp(tk.Tk):
         self.spin_qty.config(state='normal')
         self.entry_delay.config(state='normal')
         self.progress['value'] = 0
-        self.log(f"{PANEL_NAME} pronto para nova execução.")
+        self.clear_log_header()
+        self.log("Painel pronto para nova execução.")
 
     def on_close(self):
         if messagebox.askokcancel("Sair", "Deseja fechar o painel?"):
@@ -231,3 +240,4 @@ class IndiaMarryeApp(tk.Tk):
 if __name__ == "__main__":
     app = IndiaMarryeApp()
     app.mainloop()
+    

@@ -1,5 +1,7 @@
-# india_marrye_sos.py
-# Painel "Índia marrye" — Execute: python india_marrye_sos.py
+#!/usr/bin/env python3
+# india_marrye_menu.py
+# Painel "Índia marrye" — Execute: python india_marrye_menu.py
+# Use em ambiente controlado. O proprietário não se responsabiliza por uso de má fé.
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -7,8 +9,9 @@ from datetime import datetime
 import re
 
 PANEL_NAME = "Índia marrye"
+VERSION = "1.0"
 
-# Validação e normalização de números
+# --- Validação/normalização de números ---
 def normalize_number(raw):
     raw = raw.strip()
     plus = raw.startswith('+')
@@ -33,6 +36,7 @@ def parse_numbers_field(field_text):
         return None, "Nenhum número válido fornecido."
     return normalized, None
 
+# --- Aplicativo ---
 class IndiaMarryeApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -41,16 +45,14 @@ class IndiaMarryeApp(tk.Tk):
         self.geometry('720x560')
         self.resizable(False, False)
         self._build_ui()
-        self.task = None
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.bind('<Return>', self.on_enter_key)
 
     def _build_ui(self):
-        # Cabeçalho tipo banner com nome grande
+        # Cabeçalho grande como banner
         header = tk.Frame(self, bg='#ffb6d5', height=100)
         header.pack(fill='x', padx=12, pady=(12,6))
         header.pack_propagate(False)
-
         title = tk.Label(header, text=PANEL_NAME, font=('Helvetica', 28, 'bold'),
                          bg='#ffb6d5', fg='#ffffff')
         title.pack(expand=True)
@@ -67,38 +69,32 @@ class IndiaMarryeApp(tk.Tk):
         form_box = tk.Frame(left, bg='#ffdbe8', bd=2, relief='ridge')
         form_box.place(relx=0.5, rely=0.02, anchor='n', width=320, height=420)
 
-        lbl_numbers = tk.Label(form_box, text="NÚMERO(s):", bg='#ffdbe8', anchor='w')
-        lbl_numbers.place(x=12, y=12, width=296, height=22)
+        # Campos do formulário
+        tk.Label(form_box, text="NÚMERO(s):", bg='#ffdbe8', anchor='w').place(x=12, y=12, width=296, height=22)
         self.entry_numbers = tk.Entry(form_box)
         self.entry_numbers.place(x=12, y=36, width=296, height=32)
         self.entry_numbers.insert(0, "+55 64 9604-9771")
 
-        lbl_action = tk.Label(form_box, text="AÇÃO:", bg='#ffdbe8', anchor='w')
-        lbl_action.place(x=12, y=80, width=296, height=22)
+        tk.Label(form_box, text="AÇÃO:", bg='#ffdbe8', anchor='w').place(x=12, y=80, width=296, height=22)
         self.action_var = tk.StringVar(value="Denúncia")
-        action_menu = ttk.Combobox(form_box, textvariable=self.action_var, state='readonly',
-                                   values=["Denúncia", "Spam", "Denúncia dupla", "Spam dupla"])
-        action_menu.place(x=12, y=104, width=296, height=30)
+        ttk.Combobox(form_box, textvariable=self.action_var, state='readonly',
+                     values=["Denúncia", "Spam", "Denúncia dupla", "Spam dupla"]).place(x=12, y=104, width=296, height=30)
 
-        lbl_qty = tk.Label(form_box, text="QUANTIDADE (por número):", bg='#ffdbe8', anchor='w')
-        lbl_qty.place(x=12, y=150, width=296, height=22)
+        tk.Label(form_box, text="QUANTIDADE (por número):", bg='#ffdbe8', anchor='w').place(x=12, y=150, width=296, height=22)
         self.spin_qty = tk.Spinbox(form_box, from_=1, to=1000)
         self.spin_qty.place(x=12, y=174, width=296, height=30)
 
-        lbl_delay = tk.Label(form_box, text="DELAY entre envios (segundos):", bg='#ffdbe8', anchor='w')
-        lbl_delay.place(x=12, y=214, width=296, height=22)
+        tk.Label(form_box, text="DELAY entre envios (segundos):", bg='#ffdbe8', anchor='w').place(x=12, y=214, width=296, height=22)
         self.entry_delay = tk.Entry(form_box)
         self.entry_delay.place(x=12, y=238, width=296, height=30)
         self.entry_delay.insert(0, "1")
 
         # Botão executar
-        self.btn_start = tk.Button(form_box, text="Executar", bg='#ff88b8',
-                                   command=self.on_start)
+        self.btn_start = tk.Button(form_box, text="Executar", bg='#ff88b8', command=self.on_start)
         self.btn_start.place(x=12, y=286, width=296, height=40)
 
         # Barra de progresso
-        lbl_progress = tk.Label(form_box, text="Progresso:", bg='#ffdbe8', anchor='w')
-        lbl_progress.place(x=12, y=340, width=296, height=16)
+        tk.Label(form_box, text="Progresso:", bg='#ffdbe8', anchor='w').place(x=12, y=340, width=296, height=16)
         self.progress = ttk.Progressbar(form_box, orient='horizontal', mode='determinate')
         self.progress.place(x=12, y=360, width=296, height=14)
 
@@ -110,17 +106,15 @@ class IndiaMarryeApp(tk.Tk):
         log_box = tk.Frame(right, bg='#ffdbe8', bd=2, relief='ridge')
         log_box.place(relx=0.5, rely=0.02, anchor='n', width=320, height=520)
 
-        lbl_logtitle = tk.Label(log_box, text=f"{PANEL_NAME} — Registro", bg='#ffdbe8', anchor='w')
-        lbl_logtitle.place(x=12, y=8, width=296, height=22)
+        tk.Label(log_box, text=f"{PANEL_NAME} — Registro", bg='#ffdbe8', anchor='w').place(x=12, y=8, width=296, height=22)
 
         self.txt_log = tk.Text(log_box, wrap='word', state='normal')
         self.txt_log.place(x=12, y=36, width=296, height=420)
         self.clear_log_header()
 
         # Rodapé
-        footer = tk.Label(self, text="Use em ambiente controlado. O proprietário não se responsabiliza por uso de má fé.",
-                          bg='#ffe6f0', anchor='w')
-        footer.pack(fill='x', padx=12, pady=(0,12))
+        tk.Label(self, text="Use em ambiente controlado. O proprietário não se responsabiliza por uso de má fé.",
+                 bg='#ffe6f0', anchor='w').pack(fill='x', padx=12, pady=(0,12))
 
     def clear_log_header(self):
         self.txt_log.configure(state='normal')
@@ -136,7 +130,7 @@ class IndiaMarryeApp(tk.Tk):
         self.txt_log.configure(state='disabled')
 
     def on_start(self):
-        self.clear_log_header()  # SOS: limpa log antes de cada execução
+        self.clear_log_header()  # SOS: limpa tela antes de cada execução
 
         raw_numbers = self.entry_numbers.get()
         numbers, err = parse_numbers_field(raw_numbers)
@@ -159,10 +153,7 @@ class IndiaMarryeApp(tk.Tk):
             return
 
         action = self.action_var.get()
-        self.tasks = []
-        for n in numbers:
-            for i in range(qty):
-                self.tasks.append((n, i+1))
+        self.tasks = [(n, i+1) for n in numbers for i in range(qty)]
         self.total_tasks = len(self.tasks)
         if self.total_tasks == 0:
             messagebox.showerror("Erro", "Nenhuma tarefa a executar.")
@@ -193,8 +184,7 @@ class IndiaMarryeApp(tk.Tk):
         self.log(f"{self.run_info['action']} -> {target} (item {instance} de {self.run_info['qty_per_number']})")
         self.current_index += 1
         self.progress['value'] = self.current_index
-        ms = int(delay * 1000)
-        self.after(ms, lambda: self._process_next(delay))
+        self.after(int(delay*1000), lambda: self._process_next(delay))
 
     def _finish_run(self):
         info = self.run_info
@@ -240,4 +230,3 @@ class IndiaMarryeApp(tk.Tk):
 if __name__ == "__main__":
     app = IndiaMarryeApp()
     app.mainloop()
-    

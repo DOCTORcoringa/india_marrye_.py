@@ -55,11 +55,8 @@ def normalize_number(raw):
         return '+' + digits
     return digits
 
-def parse_numbers_field(field_text, multiple=False):
-    if multiple:
-        parts = [p.strip() for p in field_text.split(',') if p.strip() != ""]
-    else:
-        parts = [field_text.strip()]
+def parse_numbers_field(field_text):
+    parts = [p.strip() for p in field_text.split(',') if p.strip() != ""]
     normalized = []
     for p in parts:
         n = normalize_number(p)
@@ -67,36 +64,50 @@ def parse_numbers_field(field_text, multiple=False):
             print(f"{PINK}Número inválido encontrado: \"{p}\"{RESET}")
             return None
         normalized.append(n)
+    if not normalized:
+        print(f"{PINK}Nenhum número válido fornecido.{RESET}")
+        return None
     return normalized
 
-def progress_bar(total, delay, action, number):
-    for i in range(1, total+1):
-        percent = int((i/total)*100)
-        bar = f"{PINK}[{'#' * (percent//2)}{'-'*(50 - percent//2)}] {percent}%{RESET}"
-        print(f"{PINK}{action} -> {number} ({i}/{total}) {bar}{RESET}", end='\r')
+def progress_bar_fixed(total, delay, action, number):
+    bar_length = 50
+    print(f"{PINK}{action} -> {number}{RESET}")  # Texto fixo acima da barra
+    for i in range(total + 1):
+        percent = i / total
+        filled_length = int(bar_length * percent)
+        bar = '#' * filled_length + '-' * (bar_length - filled_length)
+        print(f"\r{PINK}[{bar}] {int(percent*100)}%{RESET}", end='', flush=True)
         time.sleep(delay)
-    print()
+    print()  # linha final depois que barra enche
 
 def execute_action(action_name, multiple_numbers=False):
     clear()
     print(BANNER)
-    numbers_input = input(f"{PINK}Digite o(s) número(s){' separados por vírgula' if multiple_numbers else ''}: {RESET}")
-    numbers = parse_numbers_field(numbers_input, multiple=multiple_numbers)
-    if not numbers:
-        input(f"{PINK}Pressione Enter para voltar ao menu.{RESET}")
-        return
+
+    if multiple_numbers:
+        numbers_input = input(f"{PINK}Digite o(s) número(s) separados por vírgula:{RESET} ")
+        numbers = parse_numbers_field(numbers_input)
+        if not numbers:
+            input(f"{PINK}Pressione Enter para voltar ao menu.{RESET}")
+            return
+    else:
+        number = input(f"{PINK}Digite o número:{RESET} ")
+        n = normalize_number(number)
+        if not n:
+            print(f"{PINK}Número inválido!{RESET}")
+            input("Enter para voltar...")
+            return
+        numbers = [n]
 
     try:
-        qty = int(input(f"{PINK}Quantidade por número: {RESET} "))
-        if qty <= 0:
-            raise ValueError
+        qty = int(input(f"{PINK}Quantidade por número:{RESET} "))
     except:
         print(f"{PINK}Quantidade inválida!{RESET}")
-        input(f"{PINK}Pressione Enter para voltar ao menu.{RESET}")
+        input("Enter para voltar...")
         return
 
     try:
-        delay_input = input(f"{PINK}Delay entre envios (s, opcional, padrão=1): {RESET}")
+        delay_input = input(f"{PINK}Delay entre envios (s, opcional, padrão=1):{RESET} ")
         delay = float(delay_input) if delay_input else 1
     except:
         print(f"{PINK}Delay inválido! Usando 1s.{RESET}")
@@ -107,16 +118,15 @@ def execute_action(action_name, multiple_numbers=False):
     start_time = datetime.now()
 
     for number in numbers:
-        print(f"{PINK}Executando {action_name} -> {number}{RESET}")
-        progress_bar(qty, delay, action_name, number)
+        progress_bar_fixed(qty, delay, f"Executando {action_name}", number)
 
     end_time = datetime.now()
     duration = (end_time - start_time).total_seconds()
 
-    # Resumo em caixinha
+    # ===== RESUMO DENTRO DA CAIXINHA =====
     print(f"""
 {PINK}╭┄┄┄┄┄┄┄
-├┄❲ RESUMO DA EXECUÇÃO ❳
+├┄❲ RESUMO ❳
 ├┄Ação: {action_name}
 ├┄Número(s): {', '.join(numbers)}
 ├┄Quantidade por número: {qty}
@@ -136,9 +146,9 @@ while True:
     print(MENU)
     choice = input(f"{PINK}Escolha uma opção (1-5): {RESET}")
     if choice == "1":
-        execute_action("Denúncia", multiple_numbers=False)
+        execute_action("Denúncia")
     elif choice == "2":
-        execute_action("Spam", multiple_numbers=False)
+        execute_action("Spam")
     elif choice == "3":
         execute_action("Denúncia Dupla", multiple_numbers=True)
     elif choice == "4":

@@ -49,9 +49,6 @@ BOLD = "\033[1m"
 # ====================== BANNER =============================
 # ==========================================================
 
-# >>> O BANNER PADRÃO EXISTE, MAS AGORA ELE NUNCA MAIS APARECE
-#     DEPOIS QUE O USUÁRIO DEFINE UM NOME <<<
-
 DEFAULT_BANNER = f"""
 {PINK}{BOLD}
 ██╗███╗░░██╗██████╗░██╗░█████╗░
@@ -75,7 +72,7 @@ def gerar_ascii_3d(texto):
     return os.popen(comando).read()
 
 def get_banner():
-    # >>> SE TIVER UM CUSTOM, O PADRÃO DESAPARECE PRA SEMPRE <<<
+    # >>> Se houver banner custom, ele aparece imediatamente, o padrão desaparece
     if settings.get("custom_banner_ascii"):
         return PINK + BOLD + settings["custom_banner_ascii"] + RESET
     return DEFAULT_BANNER
@@ -186,9 +183,11 @@ def alterar_banner():
     else:
         ascii_banner = gerar_ascii_3d(nome)
         settings["custom_banner_text"] = nome
-        settings["custom_banner_ascii"] = ascii_banner  # >>> APAGA COMPLETAMENTE O PADRÃO <<<
+        settings["custom_banner_ascii"] = ascii_banner
         save_settings(settings)
-        print(f"{PINK}Banner atualizado! (o padrão foi removido para sempre){RESET}")
+        # >>> Recarrega as configurações imediatamente para sumir o banner padrão
+        settings.update(load_settings())
+        print(f"{PINK}Banner atualizado! O padrão desapareceu e só existe o novo nome.{RESET}")
 
     input("Enter para voltar...")
 

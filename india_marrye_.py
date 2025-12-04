@@ -6,6 +6,12 @@ import re
 from datetime import datetime, timedelta
 
 # ==========================================================
+#         INSTALAÇÃO AUTOMÁTICA (UMA VEZ SÓ)
+# ==========================================================
+os.system("command -v toilet >/dev/null 2>&1 || pkg install toilet -y")
+os.system("command -v figlet >/dev/null 2>&1 || pkg install figlet -y")
+
+# ==========================================================
 # ====================== CONFIG =============================
 # ==========================================================
 
@@ -15,7 +21,8 @@ def load_settings():
     if not os.path.exists(SETTINGS_FILE):
         return {
             "last_update": datetime.now().strftime("%Y-%m-%d"),
-            "custom_banner_text": None
+            "custom_banner_text": None,
+            "custom_banner_ascii": None
         }
     with open(SETTINGS_FILE, "r") as f:
         return json.load(f)
@@ -60,14 +67,13 @@ DEFAULT_BANNER = f"""
 {RESET}
 """
 
-def generate_custom_banner(text):
-    line = text.upper()
-    padding = (50 - len(line)) // 2
-    return f"{PINK}{BOLD}\n{' ' * padding}{line}{RESET}\n"
+def gerar_ascii_3d(texto):
+    comando = f'toilet -f 3d -F metal "{texto}"'
+    return os.popen(comando).read()
 
 def get_banner():
-    if settings["custom_banner_text"]:
-        return generate_custom_banner(settings["custom_banner_text"])
+    if settings.get("custom_banner_ascii"):
+        return PINK + BOLD + settings["custom_banner_ascii"] + RESET
     return DEFAULT_BANNER
 
 # ==========================================================
@@ -138,7 +144,7 @@ def progress_bar_fixed(total, delay, action, number):
         exit(0)
 
 # ==========================================================
-# =============== SISTEMA DE ATUALIZAÇÃO ===================
+# ================ SISTEMA DE ATUALIZAÇÃO ===================
 # ==========================================================
 
 def atualizar_sistema():
@@ -162,26 +168,28 @@ def verificar_bloqueio():
     return days_since_update() >= 30
 
 # ==========================================================
-# ============ ALTERAR BANNER ===============================
+# ================= ALTERAR BANNER ==========================
 # ==========================================================
 
 def alterar_banner():
     clear()
     print(get_banner())
-    print(f"{PINK}Digite o novo nome para o banner (ou deixe vazio para manter):{RESET}")
+    print(f"{PINK}Digite o novo nome para o banner (deixe vazio para manter):{RESET}")
     nome = input("> ").strip()
 
     if nome == "":
         print(f"{PINK}Banner mantido!{RESET}")
     else:
+        ascii_banner = gerar_ascii_3d(nome)
         settings["custom_banner_text"] = nome
+        settings["custom_banner_ascii"] = ascii_banner
         save_settings(settings)
         print(f"{PINK}Banner atualizado com sucesso!{RESET}")
 
     input("Enter para voltar...")
 
 # ==========================================================
-# ================ EXECUTAR AÇÃO ============================
+# ================= EXECUTAR AÇÃO ===========================
 # ==========================================================
 
 def execute_action(action_name, multiple_allowed=False):

@@ -1,16 +1,48 @@
 #!/usr/bin/env python3
 import os
 import time
+import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# ====== CORES ======
+# ==========================================================
+# ====================== CONFIG =============================
+# ==========================================================
+
+SETTINGS_FILE = "settings.json"
+
+def load_settings():
+    if not os.path.exists(SETTINGS_FILE):
+        return {
+            "last_update": datetime.now().strftime("%Y-%m-%d"),
+            "custom_banner_text": None
+        }
+    with open(SETTINGS_FILE, "r") as f:
+        return json.load(f)
+
+def save_settings(data):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+settings = load_settings()
+
+def days_since_update():
+    last = datetime.strptime(settings["last_update"], "%Y-%m-%d")
+    return (datetime.now() - last).days
+
+# ==========================================================
+# ====================== CORES ==============================
+# ==========================================================
+
 PINK = "\033[95m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
 
-# ====== BANNER ======
-BANNER = f"""
+# ==========================================================
+# ====================== BANNER =============================
+# ==========================================================
+
+DEFAULT_BANNER = f"""
 {PINK}{BOLD}
 ██╗███╗░░██╗██████╗░██╗░█████╗░
 ██║████╗░██║██╔══██╗██║██╔══██╗
@@ -28,7 +60,20 @@ BANNER = f"""
 {RESET}
 """
 
-# ====== MENU ======
+def generate_custom_banner(text):
+    line = text.upper()
+    padding = (50 - len(line)) // 2
+    return f"{PINK}{BOLD}\n{' ' * padding}{line}{RESET}\n"
+
+def get_banner():
+    if settings["custom_banner_text"]:
+        return generate_custom_banner(settings["custom_banner_text"])
+    return DEFAULT_BANNER
+
+# ==========================================================
+# ======================= MENU ==============================
+# ==========================================================
+
 MENU = f"""
 {PINK}╭┄┄┄┄┄┄┄
 ├┄❲1❳ Denúncia
@@ -36,10 +81,15 @@ MENU = f"""
 ├┄❲3❳ Denúncia Dupla
 ├┄❲4❳ Spam Dupla
 ├┄❲5❳ Sair
+├┄❲6❳ Atualizar Sistema
+├┄❲7❳ Alterar Banner
 ╰┄┄┄┄┄┄┄{RESET}
 """
 
-# ====== FUNÇÕES ======
+# ==========================================================
+# ====================== FUNÇÕES ============================
+# ==========================================================
+
 def clear():
     os.system("clear")
 
@@ -61,7 +111,7 @@ def parse_numbers_field(field_text):
     for p in parts:
         n = normalize_number(p)
         if n is None:
-            print(f"{PINK}Número inválido encontrado: \"{p}\"{RESET}")
+            print(f"{PINK}Número inválido encontrado: {p}{RESET}")
             return None
         normalized.append(n)
     if not normalized:
@@ -73,25 +123,75 @@ def progress_bar_fixed(total, delay, action, number):
     try:
         for i in range(total + 1):
             clear()
-            print(BANNER)
+            print(get_banner())
             hora_atual = datetime.now().strftime("%H:%M:%S")
-            print(f"{PINK}╭┄┄┄┄┄┄┄\n├┄ Hora: {hora_atual}\n╰┄┄┄┄┄┄┄{RESET}")
+            print(f"{PINK}Hora: {hora_atual}{RESET}\n")
             print(f"{PINK}Executando: {action} → {number}{RESET}\n")
 
             percent = int((i / total) * 100)
             filled = int(percent / 2)
             bar = f"[{'#' * filled}{'-' * (50 - filled)}] {percent}%"
             print(f"{PINK}{bar}{RESET}\n")
-            print(f"{PINK}╭┄┄┄┄┄┄┄\n├┄ Painel Índia Marrye\n╰┄┄┄┄┄┄┄{RESET}")
             time.sleep(delay)
     except KeyboardInterrupt:
-        print(f"\n{PINK}\nEncerrando execução com segurança...{RESET}")
-        time.sleep(1)
+        print(f"{PINK}Encerrando...{RESET}")
         exit(0)
 
-def execute_action(action_name, multiple_allowed=False):
+# ==========================================================
+# =============== SISTEMA DE ATUALIZAÇÃO ===================
+# ==========================================================
+
+def atualizar_sistema():
+    dias = days_since_update()
+
+    if dias < 30:
+        print(f"{PINK}A atualização só estará disponível em {30 - dias} dias.{RESET}")
+        input("Enter para voltar...")
+        return
+
+    print(f"{PINK}Atualizando para versão 2.0...{RESET}")
+    time.sleep(2)
+
+    settings["last_update"] = datetime.now().strftime("%Y-%m-%d")
+    save_settings(settings)
+
+    print(f"{PINK}Atualização concluída!{RESET}")
+    input("Enter para voltar...")
+
+def verificar_bloqueio():
+    return days_since_update() >= 30
+
+# ==========================================================
+# ============ ALTERAR BANNER ===============================
+# ==========================================================
+
+def alterar_banner():
     clear()
-    print(BANNER)
+    print(get_banner())
+    print(f"{PINK}Digite o novo nome para o banner (ou deixe vazio para manter):{RESET}")
+    nome = input("> ").strip()
+
+    if nome == "":
+        print(f"{PINK}Banner mantido!{RESET}")
+    else:
+        settings["custom_banner_text"] = nome
+        save_settings(settings)
+        print(f"{PINK}Banner atualizado com sucesso!{RESET}")
+
+    input("Enter para voltar...")
+
+# ==========================================================
+# ================ EXECUTAR AÇÃO ============================
+# ==========================================================
+
+def execute_action(action_name, multiple_allowed=False):
+    if verificar_bloqueio():
+        print(f"{PINK}Seu painel está desatualizado!\nAtualize antes de usar qualquer ação.{RESET}")
+        input("Enter para voltar...")
+        return
+
+    clear()
+    print(get_banner())
     numbers_input = input(f"{PINK}Digite o(s) número(s){' (separe por vírgula)' if multiple_allowed else ''}:{RESET} ")
 
     if multiple_allowed:
@@ -111,8 +211,8 @@ def execute_action(action_name, multiple_allowed=False):
         input("Enter para voltar...")
         return
 
+    delay_input = input(f"{PINK}Delay entre envios (s, padrão=1):{RESET} ")
     try:
-        delay_input = input(f"{PINK}Delay entre envios (s, opcional, padrão=1):{RESET} ")
         delay = float(delay_input) if delay_input else 1
     except:
         print(f"{PINK}Delay inválido! Usando 1s.{RESET}")
@@ -124,22 +224,21 @@ def execute_action(action_name, multiple_allowed=False):
     end_time = datetime.now()
 
     duration = (end_time - start_time).total_seconds()
-    print(f"\n{PINK}╭┄┄┄┄┄┄┄")
-    print(f"├┄ Ação: {action_name}")
-    print(f"├┄ Número(s): {', '.join(numbers)}")
-    print(f"├┄ Quantidade: {qty}")
-    print(f"├┄ Delay: {delay}s")
-    print(f"├┄ Duração total: {duration:.2f}s")
-    print(f"╰┄┄┄┄┄┄┄{RESET}")
-    input(f"{PINK}Pressione Enter para voltar ao menu.{RESET}")
+    print(f"{PINK}Ação concluída! Duração total: {duration:.2f}s{RESET}")
+    input("Enter para voltar...")
 
-# ====== LOOP PRINCIPAL ======
+# ==========================================================
+# ==================== LOOP PRINCIPAL =======================
+# ==========================================================
+
 while True:
     try:
         clear()
-        print(BANNER)
+        print(get_banner())
         print(MENU)
-        choice = input(f"{PINK}Escolha uma opção (1-5): {RESET}")
+
+        choice = input(f"{PINK}Escolha uma opção (1-7): {RESET}")
+
         if choice == "1":
             execute_action("Denúncia")
         elif choice == "2":
@@ -151,10 +250,14 @@ while True:
         elif choice == "5":
             print(f"{PINK}Saindo...{RESET}")
             break
+        elif choice == "6":
+            atualizar_sistema()
+        elif choice == "7":
+            alterar_banner()
         else:
             print(f"{PINK}Opção inválida!{RESET}")
             time.sleep(1)
+
     except KeyboardInterrupt:
-        print(f"\n{PINK}\nEncerrando painel Índia Marrye...{RESET}")
-        time.sleep(1)
+        print(f"{PINK}Encerrando painel Índia Marrye...{RESET}")
         break
